@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <style>
+    :root{--bg:#060910;--bg2:#0c1120;--accent:#00e5ff;--accent2:#7b61ff;--text:#e8eaf0;--muted:#7a8499;--card:#0f1826;--border:rgba(0,229,255,0.12);--danger:#ff6b6b;--success:#00e5aa;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+    h1,h2,h3{font-family:'Syne',sans-serif;}
+    nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;position:sticky;top:0;z-index:10;}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);font-size:1rem;}
+    .logo span{color:var(--text);}
+    .logout-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.4rem 1rem;border-radius:6px;cursor:pointer;font-size:.83rem;transition:all .2s;}
+    .logout-btn:hover{border-color:var(--danger);color:var(--danger);}
+    .layout{display:flex;min-height:calc(100vh - 61px);}
+    .sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:1.5rem 0;flex-shrink:0;}
+    .sidebar-item{display:flex;align-items:center;gap:.8rem;padding:.75rem 1.5rem;cursor:pointer;color:var(--muted);font-size:.88rem;font-weight:500;transition:all .2s;border-left:3px solid transparent;}
+    .sidebar-item:hover{color:var(--text);background:rgba(0,229,255,.05);}
+    .sidebar-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(0,229,255,.07);}
+    .sidebar-item i{width:18px;text-align:center;}
+    .main{flex:1;padding:2rem;}
+    .panel{display:none;}
+    .panel.active{display:block;}
+    .panel-title{font-size:1.3rem;font-weight:800;margin-bottom:1.5rem;}
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:2rem;}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;text-align:center;}
+    .stat-card .val{font-size:2rem;font-weight:800;font-family:'Syne',sans-serif;color:var(--accent);}
+    .stat-card .lbl{font-size:.78rem;color:var(--muted);margin-top:.3rem;}
+    .tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:2rem;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:var(--bg2);font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.9rem 1.2rem;text-align:left;}
+    td{padding:.85rem 1.2rem;border-top:1px solid var(--border);font-size:.87rem;vertical-align:top;}
+    tr:hover td{background:rgba(0,229,255,.03);}
+    .grade-badge{display:inline-block;font-size:.75rem;font-weight:700;padding:.2rem .7rem;border-radius:100px;}
+    .grade-A{background:rgba(0,229,170,.15);color:var(--success);}
+    .grade-B{background:rgba(0,229,255,.15);color:var(--accent);}
+    .grade-C{background:rgba(123,97,255,.15);color:var(--accent2);}
+    .grade-D{background:rgba(255,165,0,.15);color:orange;}
+    .grade-E,.grade-F{background:rgba(255,107,107,.15);color:var(--danger);}
+    .btn-sm{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .75rem;border-radius:6px;font-size:.77rem;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;border:none;transition:all .2s;}
+    .btn-red{background:rgba(255,107,107,.15);color:var(--danger);}
+    .btn-red:hover{background:rgba(255,107,107,.25);}
+    .form-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.8rem;max-width:620px;margin-bottom:2rem;}
+    .form-card h3{font-size:1rem;font-weight:700;margin-bottom:1.2rem;}
+    .fg{margin-bottom:1rem;}
+    .fg label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.4rem;font-weight:500;}
+    .fg input,.fg select{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s;appearance:none;}
+    .fg input:focus,.fg select:focus{border-color:var(--accent);}
+    .submit-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.8rem;background:var(--accent);color:#060910;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:.87rem;cursor:pointer;transition:background .2s;}
+    .submit-btn:hover{background:#33eaff;}
+    .toast{position:fixed;bottom:1.5rem;right:1.5rem;padding:.8rem 1.4rem;border-radius:10px;font-size:.87rem;font-weight:500;z-index:999;display:none;}
+    .toast.success{background:rgba(0,229,170,.15);border:1px solid rgba(0,229,170,.3);color:var(--success);}
+    .toast.error{background:rgba(255,107,107,.15);border:1px solid rgba(255,107,107,.3);color:var(--danger);}
+    .chat-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:700px;}
+    .student-list{display:flex;gap:.5rem;flex-wrap:wrap;padding:1rem;border-bottom:1px solid var(--border);}
+    .student-btn{padding:.4rem 1rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.82rem;cursor:pointer;transition:all .2s;}
+    .student-btn.active{background:var(--accent);color:#060910;border-color:var(--accent);font-weight:700;}
+    .chat-messages{height:350px;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;}
+    .chat-bubble{max-width:75%;padding:.75rem 1rem;border-radius:12px;font-size:.88rem;line-height:1.5;}
+    .bubble-student{background:var(--bg2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border);}
+    .bubble-teacher{background:var(--accent);color:#060910;align-self:flex-end;border-bottom-right-radius:4px;}
+    .bubble-meta{font-size:.72rem;margin-top:.3rem;opacity:.7;}
+    .chat-input-row{display:flex;gap:.5rem;padding:1rem;border-top:1px solid var(--border);}
+    .chat-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;}
+    .chat-input:focus{border-color:var(--accent);}
+    .send-btn{background:var(--accent);color:#060910;border:none;border-radius:8px;padding:.75rem 1.2rem;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;}
+    .empty-state{text-align:center;padding:2rem;color:var(--muted);}
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">SMS<span> — Teacher Panel</span></span>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <span style="font-size:.85rem;color:var(--muted);">Welcome, <strong id="teacher-name" style="color:var(--text);"></strong></span>
+    <button class="logout-btn" onclick="doLogout()"><i class="fa fa-sign-out"></i> Logout</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-item active" onclick="switchPanel('dashboard', this)"><i class="fa fa-tachometer"></i> Dashboard</div>
+    <div class="sidebar-item" onclick="switchPanel('marks', this)"><i class="fa fa-bar-chart"></i> Add Marks</div>
+    <div class="sidebar-item" onclick="switchPanel('all-marks', this)"><i class="fa fa-list"></i> All Marks</div>
+    <div class="sidebar-item" onclick="switchPanel('students', this)"><i class="fa fa-users"></i> Students</div>
+    <div class="sidebar-item" onclick="switchPanel('chat', this)"><i class="fa fa-comments"></i> Messages</div>
+  </div>
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <h2 class="panel-title">Dashboard</h2>
+      <div class="stats-row">
+        <div class="stat-card"><div class="val" id="stat-students">—</div><div class="lbl">Students</div></div>
+        <div class="stat-card"><div class="val" id="stat-marks">—</div><div class="lbl">Total Marks</div></div>
+        <div class="stat-card"><div class="val" id="stat-avg">—</div><div class="lbl">Class Average</div></div>
+        <div class="stat-card"><div class="val" id="stat-subjects">—</div><div class="lbl">Subjects</div></div>
+      </div>
+      <p style="color:var(--muted);font-size:.9rem;">Use the sidebar to add marks, view students and reply to messages.</p>
+    </div>
+
+    <!-- ADD MARKS -->
+    <div class="panel" id="panel-marks">
+      <h2 class="panel-title"><i class="fa fa-bar-chart" style="color:var(--accent);margin-right:.5rem;"></i>Add Marks</h2>
+      <div class="form-card">
+        <h3><i class="fa fa-plus" style="color:var(--accent);margin-right:.4rem;"></i>Enter Student Mark</h3>
+        <div class="fg"><label>Student</label>
+          <select id="m-student"><option value="">Select student...</option></select>
+        </div>
+        <div class="fg"><label>Subject</label>
+          <select id="m-subject"><option value="">Select subject...</option></select>
+        </div>
+        <div class="fg"><label>Term</label>
+          <select id="m-term">
+            <option value="Term 1">Term 1</option>
+            <option value="Term 2">Term 2</option>
+            <option value="Term 3">Term 3</option>
+            <option value="Term 4">Term 4</option>
+          </select>
+        </div>
+        <div class="fg"><label>Mark Obtained</label><input type="number" id="m-mark" placeholder="e.g. 75" min="0"></div>
+        <div class="fg"><label>Total Mark</label><input type="number" id="m-total" placeholder="e.g. 100" min="1" value="100"></div>
+        <button class="submit-btn" onclick="addMark()"><i class="fa fa-save"></i> Save Mark</button>
+      </div>
+    </div>
+
+    <!-- ALL MARKS -->
+    <div class="panel" id="panel-all-marks">
+      <h2 class="panel-title"><i class="fa fa-list" style="color:var(--accent);margin-right:.5rem;"></i>All Marks</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Student</th><th>Grade</th><th>Subject</th><th>Term</th><th>Mark</th><th>%</th><th>Grade</th><th>Actions</th></tr></thead>
+          <tbody id="all-marks-body"><tr><td colspan="8" class="empty-state">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STUDENTS -->
+    <div class="panel" id="panel-students">
+      <h2 class="panel-title"><i class="fa fa-users" style="color:var(--accent);margin-right:.5rem;"></i>Students</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Student No.</th><th>Grade</th></tr></thead>
+          <tbody id="students-body"><tr><td colspan="4" class="empty-state">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="panel" id="panel-chat">
+      <h2 class="panel-title"><i class="fa fa-comments" style="color:var(--accent);margin-right:.5rem;"></i>Student Messages</h2>
+      <div class="chat-wrap">
+        <div class="student-list" id="student-list">
+          <span style="color:var(--muted);font-size:.85rem;">Loading students...</span>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="empty-state">Select a student to view messages</div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" class="chat-input" id="chat-input" placeholder="Reply to student..." onkeydown="if(event.key==='Enter') sendReply()">
+          <button class="send-btn" onclick="sendReply()"><i class="fa fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const token = localStorage.getItem('sms_token');
+  const user  = JSON.parse(localStorage.getItem('sms_user') || '{}');
+
+  if (!token || user.role !== 'teacher') {
+    window.location.href = '/login';
+  }
+
+  document.getElementById('teacher-name').textContent = user.name || 'Teacher';
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+  }
+
+  function doLogout() {
+    localStorage.removeItem('sms_token');
+    localStorage.removeItem('sms_user');
+    window.location.href = '/login';
+  }
+
+  function switchPanel(name, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    document.getElementById(`panel-${name}`).classList.add('active');
+    el.classList.add('active');
+    if (name === 'all-marks') loadAllMarks();
+    if (name === 'students') loadStudents();
+    if (name === 'chat') loadChatStudents();
+    if (name === 'marks') loadFormData();
+  }
+
+  // ── DASHBOARD ─────────────────────────────────────────
+  async function loadDashboard() {
+    try {
+      const [students, marks, subjects] = await Promise.all([
+        fetch('/api/students', { headers: authHeaders() }).then(r => r.json()),
+        fetch('/api/marks/all', { headers: authHeaders() }).then(r => r.json()),
+        fetch('/api/subjects', { headers: authHeaders() }).then(r => r.json()),
+      ]);
+      document.getElementById('stat-students').textContent = students.length;
+      document.getElementById('stat-marks').textContent    = marks.length;
+      document.getElementById('stat-subjects').textContent = subjects.length;
+      const avg = marks.length ? Math.round(marks.reduce((s, m) => s + (m.mark/m.total*100), 0) / marks.length) : 0;
+      document.getElementById('stat-avg').textContent = avg + '%';
+    } catch {}
+  }
+
+  // ── FORM DATA ─────────────────────────────────────────
+  async function loadFormData() {
+    try {
+      const [students, subjects] = await Promise.all([
+        fetch('/api/students', { headers: authHeaders() }).then(r => r.json()),
+        fetch('/api/subjects', { headers: authHeaders() }).then(r => r.json()),
+      ]);
+      const sSel = document.getElementById('m-student');
+      const subSel = document.getElementById('m-subject');
+      sSel.innerHTML = '<option value="">Select student...</option>' +
+        students.map(s => `<option value="${s.id}">${s.name} (${s.student_number})</option>`).join('');
+      subSel.innerHTML = '<option value="">Select subject...</option>' +
+        subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    } catch {}
+  }
+
+  // ── ADD MARK ──────────────────────────────────────────
+  async function addMark() {
+    const student_id = document.getElementById('m-student').value;
+    const subject_id = document.getElementById('m-subject').value;
+    const term       = document.getElementById('m-term').value;
+    const mark       = document.getElementById('m-mark').value;
+    const total      = document.getElementById('m-total').value;
+    if (!student_id || !subject_id || !term || !mark || !total) {
+      toast('error', 'Please fill in all fields');
+      return;
+    }
+    const res = await fetch('/api/marks', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ student_id, subject_id, term, mark: parseInt(mark), total: parseInt(total) })
+    });
+    if (res.ok) {
+      toast('success', 'Mark saved successfully!');
+      document.getElementById('m-mark').value = '';
+    } else {
+      toast('error', 'Failed to save mark');
+    }
+  }
+
+  // ── ALL MARKS ─────────────────────────────────────────
+  async function loadAllMarks() {
+    const tbody = document.getElementById('all-marks-body');
+    try {
+      const res  = await fetch('/api/marks/all', { headers: authHeaders() });
+      const data = await res.json();
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No marks yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(m => {
+        const pct = Math.round((m.mark / m.total) * 100);
+        return `
+          <tr>
+            <td style="font-weight:600;">${m.student_name}</td>
+            <td style="color:var(--muted);">${m.grade_level}</td>
+            <td>${m.subject}</td>
+            <td style="color:var(--muted);">${m.term}</td>
+            <td style="font-weight:700;color:var(--accent);">${m.mark}/${m.total}</td>
+            <td>${pct}%</td>
+            <td><span class="grade-badge grade-${m.grade}">${m.grade}</span></td>
+            <td><button class="btn-sm btn-red" onclick="deleteMark(${m.id})"><i class="fa fa-trash"></i></button></td>
+          </tr>`;
+      }).join('');
+    } catch {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Failed to load.</td></tr>';
+    }
+  }
+
+  async function deleteMark(id) {
+    if (!confirm('Delete this mark?')) return;
+    await fetch(`/api/marks/${id}`, { method: 'DELETE', headers: authHeaders() });
+    toast('success', 'Mark deleted');
+    loadAllMarks();
+  }
+
+  // ── STUDENTS ──────────────────────────────────────────
+  async function loadStudents() {
+    const tbody = document.getElementById('students-body');
+    try {
+      const res  = await fetch('/api/students', { headers: authHeaders() });
+      const data = await res.json();
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No students yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(s => `
+        <tr>
+          <td style="font-weight:600;">${s.name}</td>
+          <td style="color:var(--muted);">${s.email}</td>
+          <td style="color:var(--accent);">${s.student_number}</td>
+          <td>${s.grade_level}</td>
+        </tr>`).join('');
+    } catch {}
+  }
+
+  // ── CHAT ──────────────────────────────────────────────
+  let selectedStudentUserId = null;
+
+  async function loadChatStudents() {
+    const listEl = document.getElementById('student-list');
+    try {
+      const res  = await fetch('/api/students', { headers: authHeaders() });
+      const data = await res.json();
+      if (!data.length) {
+        listEl.innerHTML = '<span style="color:var(--muted);font-size:.85rem;">No students found.</span>';
+        return;
+      }
+      listEl.innerHTML = data.map(s =>
+        `<button class="student-btn" onclick="selectStudent(${s.user_id}, '${s.name}', this)">${s.name}</button>`
+      ).join('');
+    } catch {}
+  }
+
+  function selectStudent(userId, name, el) {
+    selectedStudentUserId = userId;
+    document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    loadTeacherMessages(userId);
+  }
+
+  async function loadTeacherMessages(studentUserId) {
+    const container = document.getElementById('chat-messages');
+    try {
+      const res  = await fetch('/api/messages', { headers: authHeaders() });
+      const all  = await res.json();
+      const msgs = all.filter(m => m.student_user_id === studentUserId);
+      if (!msgs.length) {
+        container.innerHTML = '<div class="empty-state">No messages with this student yet.</div>';
+        return;
+      }
+      container.innerHTML = msgs.map(m => {
+        const isTeacher = m.role === 'teacher';
+        const time = new Date(m.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+        return `
+          <div class="chat-bubble ${isTeacher ? 'bubble-teacher' : 'bubble-student'}">
+            ${m.message}
+            <div class="bubble-meta">${isTeacher ? 'You' : m.sender_name} · ${time}</div>
+          </div>`;
+      }).join('');
+      container.scrollTop = container.scrollHeight;
+    } catch {}
+  }
+
+  async function sendReply() {
+    if (!selectedStudentUserId) { toast('error', 'Select a student first'); return; }
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+    input.value = '';
+    await fetch('/api/messages', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ message, student_user_id: selectedStudentUserId })
+    });
+    loadTeacherMessages(selectedStudentUserId);
+  }
+
+  // ── TOAST ─────────────────────────────────────────────
+  function toast(type, msg) {
+    const el = document.getElementById('toast');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3500);
+  }
+
+  // Init
+  loadDashboard();
+</script>
+</body>
+</html>

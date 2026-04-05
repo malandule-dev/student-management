@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Management System — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <style>
+    :root{--bg:#060910;--bg2:#0c1120;--accent:#00e5ff;--accent2:#7b61ff;--text:#e8eaf0;--muted:#7a8499;--card:#0f1826;--border:rgba(0,229,255,0.12);--danger:#ff6b6b;--success:#00e5aa;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+    .login-wrap{width:100%;max-width:420px;}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--accent);text-align:center;margin-bottom:.4rem;}
+    .logo span{color:var(--text);}
+    .tagline{text-align:center;color:var(--muted);font-size:.88rem;margin-bottom:2rem;}
+    .login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2.5rem;}
+    .login-box h2{font-family:'Syne',sans-serif;font-size:1.4rem;margin-bottom:.3rem;}
+    .login-box p{color:var(--muted);font-size:.85rem;margin-bottom:1.8rem;}
+    .tab-row{display:flex;gap:.5rem;margin-bottom:1.5rem;}
+    .tab{flex:1;padding:.6rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;}
+    .tab.active{background:var(--accent);color:#060910;border-color:var(--accent);}
+    .fg{margin-bottom:1rem;}
+    .fg label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.4rem;}
+    .fg input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.85rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;}
+    .fg input:focus{border-color:var(--accent);}
+    .login-btn{width:100%;padding:.9rem;background:var(--accent);color:#060910;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:background .2s;margin-top:.5rem;}
+    .login-btn:hover{background:#33eaff;}
+    .error{color:var(--danger);font-size:.85rem;margin-top:.7rem;display:none;text-align:center;}
+    .demo-box{margin-top:1.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;}
+    .demo-box p{font-size:.78rem;color:var(--muted);margin-bottom:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+    .demo-item{font-size:.82rem;color:var(--text);margin-bottom:.3rem;}
+    .demo-item span{color:var(--accent);}
+  </style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="logo">SMS<span> — School</span></div>
+  <p class="tagline">Student Management System</p>
+  <div class="login-box">
+    <h2>Welcome Back</h2>
+    <p>Sign in to access your account</p>
+    <div class="tab-row">
+      <button class="tab active" onclick="setRole('student', this)"><i class="fa fa-graduation-cap"></i> Student</button>
+      <button class="tab" onclick="setRole('teacher', this)"><i class="fa fa-chalkboard-teacher"></i> Teacher</button>
+    </div>
+    <div class="fg"><label>Email Address</label><input type="email" id="email" placeholder="your@email.com"></div>
+    <div class="fg"><label>Password</label><input type="password" id="password" placeholder="Your password"></div>
+    <button class="login-btn" onclick="doLogin()">Sign In <i class="fa fa-arrow-right"></i></button>
+    <p class="error" id="error"></p>
+  </div>
+  <div class="demo-box">
+    <p>Demo Credentials</p>
+    <div class="demo-item">Student — <span>thabo@school.com</span> / <span>password</span></div>
+    <div class="demo-item">Teacher — <span>teacher@school.com</span> / <span>password</span></div>
+  </div>
+</div>
+<script>
+  let selectedRole = 'student';
+
+  function setRole(role, el) {
+    selectedRole = role;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  async function doLogin() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const errEl    = document.getElementById('error');
+    errEl.style.display = 'none';
+
+    if (!email || !password) {
+      errEl.textContent = 'Please fill in all fields.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Login failed.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      localStorage.setItem('sms_token', data.token);
+      localStorage.setItem('sms_user', JSON.stringify(data.user));
+
+      if (data.user.role === 'teacher') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/dashboard';
+      }
+    } catch {
+      errEl.textContent = 'Could not connect to server.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+</script>
+</body>
+</html>
