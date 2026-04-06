@@ -57,11 +57,22 @@ function requireTeacher(req, res, next) {
   });
 }
 
+// ── SETUP ROUTE ───────────────────────────────────────
+app.get('/setup-passwords', async (req, res) => {
+  try {
+    const hash = await bcrypt.hash('password', 10);
+    await db.query('UPDATE users SET password = ? WHERE email = ?', [hash, 'thabo@school.com']);
+    await db.query('UPDATE users SET password = ? WHERE email = ?', [hash, 'teacher@school.com']);
+    res.json({ message: 'Passwords updated successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ══════════════════════════════════════════════════════
 //  AUTH ROUTES
 // ══════════════════════════════════════════════════════
 
-// POST /api/auth/login
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -83,7 +94,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// GET /api/auth/me
 app.get('/api/auth/me', requireAuth, async (req, res) => {
   const [rows] = await db.query('SELECT id, name, email, role, student_id FROM users WHERE id = ?', [req.user.id]);
   if (!rows.length) return res.status(404).json({ error: 'User not found' });
@@ -94,7 +104,6 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 //  MARKS ROUTES
 // ══════════════════════════════════════════════════════
 
-// GET /api/marks — student gets their own marks
 app.get('/api/marks', requireAuth, async (req, res) => {
   const studentId = req.user.student_id;
   const [rows] = await db.query(
@@ -108,7 +117,6 @@ app.get('/api/marks', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-// GET /api/marks/all — teacher gets all students marks
 app.get('/api/marks/all', requireTeacher, async (req, res) => {
   const [rows] = await db.query(
     `SELECT m.id, u.name AS student_name, st.grade_level, s.name AS subject, m.term, m.mark, m.total, m.grade
@@ -121,7 +129,6 @@ app.get('/api/marks/all', requireTeacher, async (req, res) => {
   res.json(rows);
 });
 
-// POST /api/marks — teacher adds a mark
 app.post('/api/marks', requireTeacher, async (req, res) => {
   const { student_id, subject_id, term, mark, total } = req.body;
   if (!student_id || !subject_id || !term || mark === undefined || !total)
@@ -140,7 +147,6 @@ app.post('/api/marks', requireTeacher, async (req, res) => {
   res.status(201).json({ message: 'Mark added successfully' });
 });
 
-// DELETE /api/marks/:id — teacher deletes a mark
 app.delete('/api/marks/:id', requireTeacher, async (req, res) => {
   await db.query('DELETE FROM marks WHERE id = ?', [req.params.id]);
   res.json({ message: 'Mark deleted' });
@@ -150,7 +156,6 @@ app.delete('/api/marks/:id', requireTeacher, async (req, res) => {
 //  SUBJECTS ROUTES
 // ══════════════════════════════════════════════════════
 
-// GET /api/subjects
 app.get('/api/subjects', requireAuth, async (req, res) => {
   const [rows] = await db.query('SELECT * FROM subjects ORDER BY name');
   res.json(rows);
@@ -160,7 +165,6 @@ app.get('/api/subjects', requireAuth, async (req, res) => {
 //  STUDENTS ROUTES
 // ══════════════════════════════════════════════════════
 
-// GET /api/students — teacher gets all students
 app.get('/api/students', requireTeacher, async (req, res) => {
   const [rows] = await db.query(
     `SELECT s.id, u.name, u.email, s.grade_level, s.student_number
@@ -174,7 +178,6 @@ app.get('/api/students', requireTeacher, async (req, res) => {
 //  MESSAGES ROUTES
 // ══════════════════════════════════════════════════════
 
-// GET /api/messages — get messages for logged in user
 app.get('/api/messages', requireAuth, async (req, res) => {
   let rows;
   if (req.user.role === 'teacher') {
@@ -195,7 +198,6 @@ app.get('/api/messages', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-// POST /api/messages — send a message
 app.post('/api/messages', requireAuth, async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'Message is required' });
@@ -215,8 +217,6 @@ const PDFDocument = require('pdfkit');
 app.get('/api/report-card', requireAuth, async (req, res) => {
   try {
     const studentId = req.user.student_id;
-
-    // Get student info
     const [studentRows] = await db.query(
       `SELECT u.name, u.email, s.student_number, s.grade_level
        FROM users u JOIN students s ON s.user_id = u.id
@@ -224,21 +224,15 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
     );
     if (!studentRows.length) return res.status(404).json({ error: 'Student not found' });
     const student = studentRows[0];
-
-    // Get marks
     const [marks] = await db.query(
       `SELECT m.*, s.name AS subject FROM marks m
        JOIN subjects s ON m.subject_id = s.id
        WHERE m.student_id = ? ORDER BY s.name, m.term`, [studentId]
     );
-
-    // Create PDF
     const doc = new PDFDocument({ margin: 50 });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="report-card-${student.student_number}.pdf"`);
     doc.pipe(res);
-
-    // ── HEADER ──
     doc.rect(0, 0, 612, 120).fill('#060910');
     doc.fillColor('#00e5ff').font('Helvetica-Bold').fontSize(24)
        .text('STUDENT REPORT CARD', 50, 35, { align: 'center' });
@@ -246,8 +240,6 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
        .text('Student Management System — School', 50, 65, { align: 'center' });
     doc.fillColor('#e8eaf0').fontSize(10)
        .text(`Generated: ${new Date().toLocaleDateString('en-ZA')}`, 50, 85, { align: 'center' });
-
-    // ── STUDENT INFO ──
     doc.moveDown(3);
     doc.rect(50, 135, 512, 80).fill('#0c1120').stroke('#1a56db');
     doc.fillColor('#00e5ff').font('Helvetica-Bold').fontSize(11)
@@ -257,12 +249,8 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
     doc.text(`Student No: ${student.student_number}`, 65, 183);
     doc.text(`Grade: ${student.grade_level}`, 300, 168);
     doc.text(`Email: ${student.email}`, 300, 183);
-
-    // ── MARKS TABLE ──
     doc.moveDown(2);
     let y = 235;
-
-    // Table header
     doc.rect(50, y, 512, 25).fill('#1a56db');
     doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9);
     doc.text('SUBJECT', 60, y + 8);
@@ -272,8 +260,6 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
     doc.text('%', 420, y + 8);
     doc.text('GRADE', 470, y + 8);
     y += 25;
-
-    // Table rows
     let totalPct = 0;
     let count = 0;
     marks.forEach((m, i) => {
@@ -282,14 +268,11 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
       count++;
       const bg = i % 2 === 0 ? '#0f1826' : '#0c1120';
       doc.rect(50, y, 512, 22).fill(bg);
-
-      // Grade color
       let gradeColor = '#ff6b6b';
       if (m.grade === 'A') gradeColor = '#00e5aa';
       else if (m.grade === 'B') gradeColor = '#00e5ff';
       else if (m.grade === 'C') gradeColor = '#7b61ff';
       else if (m.grade === 'D') gradeColor = 'orange';
-
       doc.fillColor('#e8eaf0').font('Helvetica').fontSize(9);
       doc.text(m.subject, 60, y + 7);
       doc.text(m.term, 220, y + 7);
@@ -298,15 +281,8 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
       doc.text(pct + '%', 420, y + 7);
       doc.fillColor(gradeColor).font('Helvetica-Bold').text(m.grade, 470, y + 7);
       y += 22;
-
-      // New page if needed
-      if (y > 700) {
-        doc.addPage();
-        y = 50;
-      }
+      if (y > 700) { doc.addPage(); y = 50; }
     });
-
-    // ── SUMMARY ──
     y += 20;
     const overallAvg = count > 0 ? Math.round(totalPct / count) : 0;
     let overallGrade = 'F';
@@ -315,7 +291,6 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
     else if (overallAvg >= 60) overallGrade = 'C';
     else if (overallAvg >= 50) overallGrade = 'D';
     else if (overallAvg >= 40) overallGrade = 'E';
-
     doc.rect(50, y, 512, 50).fill('#0c1120').stroke('#1a56db');
     doc.fillColor('#00e5ff').font('Helvetica-Bold').fontSize(11)
        .text('OVERALL PERFORMANCE', 65, y + 10);
@@ -323,13 +298,10 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
        .text(`Average: ${overallAvg}%`, 65, y + 28);
     doc.fillColor(overallAvg >= 70 ? '#00e5aa' : overallAvg >= 50 ? '#00e5ff' : '#ff6b6b')
        .font('Helvetica-Bold').text(`Overall Grade: ${overallGrade}`, 300, y + 28);
-
-    // ── FOOTER ──
     doc.rect(0, 780, 612, 62).fill('#060910');
     doc.fillColor('#7a8499').font('Helvetica').fontSize(9)
        .text('This report card was generated electronically and is valid without a signature.', 50, 795, { align: 'center' });
     doc.fillColor('#00e5ff').text('Student Management System', 50, 810, { align: 'center' });
-
     doc.end();
   } catch (err) {
     console.error(err);
