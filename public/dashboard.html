@@ -146,7 +146,7 @@
   const user  = JSON.parse(localStorage.getItem('sms_user') || '{}');
 
   if (!token || user.role !== 'student') {
-    window.location.href = '/login';
+    window.location.href = '/';
   }
 
   document.getElementById('student-name').textContent = user.name || 'Student';
@@ -158,7 +158,7 @@
   function doLogout() {
     localStorage.removeItem('sms_token');
     localStorage.removeItem('sms_user');
-    window.location.href = '/login';
+    window.location.href = '/';
   }
 
   function switchPanel(name, el) {
@@ -170,7 +170,6 @@
     if (name === 'profile') loadProfile();
   }
 
-  // ── MARKS ─────────────────────────────────────────────
   let allMarks = [];
   let activeTerm = 'All';
 
@@ -179,7 +178,6 @@
     try {
       const res  = await fetch('/api/marks', { headers: authHeaders() });
       allMarks   = await res.json();
-
       if (allMarks.length) {
         const avg      = Math.round(allMarks.reduce((s, m) => s + (m.mark/m.total*100), 0) / allMarks.length);
         const highest  = Math.max(...allMarks.map(m => Math.round(m.mark/m.total*100)));
@@ -190,13 +188,11 @@
         document.getElementById('stat-subjects').textContent = subjects;
         document.getElementById('stat-as').textContent       = as;
       }
-
       const terms = ['All', ...new Set(allMarks.map(m => m.term))];
       const filterRow = document.getElementById('term-filters');
       filterRow.innerHTML = terms.map(t =>
         `<button class="filter-btn ${t === activeTerm ? 'active' : ''}" onclick="filterByTerm('${t}', this)">${t}</button>`
       ).join('');
-
       renderMarks(allMarks);
     } catch {
       tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Failed to load marks.</td></tr>';
@@ -236,7 +232,6 @@
     }).join('');
   }
 
-  // ── CHAT ──────────────────────────────────────────────
   async function loadMessages() {
     const container = document.getElementById('chat-messages');
     try {
@@ -274,19 +269,16 @@
     } catch {}
   }
 
-  // ── PROFILE ───────────────────────────────────────────
   function loadProfile() {
     document.getElementById('p-name').textContent  = user.name || '—';
     document.getElementById('p-id').textContent    = user.student_id || '—';
     document.getElementById('p-email').textContent = user.email || '—';
   }
 
-  // ── REPORT CARD DOWNLOAD ──────────────────────────────
   function downloadReportCard() {
     const btn = document.getElementById('download-btn');
     btn.innerHTML  = '<i class="fa fa-spinner fa-spin"></i> Generating...';
     btn.disabled   = true;
-
     fetch('/api/report-card', { headers: authHeaders() })
       .then(res => {
         if (!res.ok) throw new Error('Failed');
@@ -309,7 +301,6 @@
       });
   }
 
-  // Init
   loadMarks();
 </script>
 </body>

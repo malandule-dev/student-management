@@ -178,7 +178,7 @@
   const user  = JSON.parse(localStorage.getItem('sms_user') || '{}');
 
   if (!token || user.role !== 'teacher') {
-    window.location.href = '/login';
+    window.location.href = '/';
   }
 
   document.getElementById('teacher-name').textContent = user.name || 'Teacher';
@@ -190,7 +190,7 @@
   function doLogout() {
     localStorage.removeItem('sms_token');
     localStorage.removeItem('sms_user');
-    window.location.href = '/login';
+    window.location.href = '/';
   }
 
   function switchPanel(name, el) {
@@ -204,7 +204,6 @@
     if (name === 'marks') loadFormData();
   }
 
-  // ── DASHBOARD ─────────────────────────────────────────
   async function loadDashboard() {
     try {
       const [students, marks, subjects] = await Promise.all([
@@ -220,7 +219,6 @@
     } catch {}
   }
 
-  // ── FORM DATA ─────────────────────────────────────────
   async function loadFormData() {
     try {
       const [students, subjects] = await Promise.all([
@@ -236,7 +234,6 @@
     } catch {}
   }
 
-  // ── ADD MARK ──────────────────────────────────────────
   async function addMark() {
     const student_id = document.getElementById('m-student').value;
     const subject_id = document.getElementById('m-subject').value;
@@ -260,7 +257,6 @@
     }
   }
 
-  // ── ALL MARKS ─────────────────────────────────────────
   async function loadAllMarks() {
     const tbody = document.getElementById('all-marks-body');
     try {
@@ -296,7 +292,6 @@
     loadAllMarks();
   }
 
-  // ── STUDENTS ──────────────────────────────────────────
   async function loadStudents() {
     const tbody = document.getElementById('students-body');
     try {
@@ -316,7 +311,6 @@
     } catch {}
   }
 
-  // ── CHAT ──────────────────────────────────────────────
   let selectedStudentUserId = null;
 
   async function loadChatStudents() {
@@ -378,7 +372,6 @@
     loadTeacherMessages(selectedStudentUserId);
   }
 
-  // ── TOAST ─────────────────────────────────────────────
   function toast(type, msg) {
     const el = document.getElementById('toast');
     el.className = `toast ${type}`;
@@ -387,7 +380,6 @@
     setTimeout(() => { el.style.display = 'none'; }, 3500);
   }
 
-  // Init
   loadDashboard();
 </script>
 </body>
