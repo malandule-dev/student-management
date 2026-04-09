@@ -104,7 +104,10 @@
 
   async function loadTerms() {
     try {
-      const res = await fetch("/api/terms");
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/terms', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
       const terms = await res.json();
       const sel = document.getElementById('termId');
       terms.forEach(t => {
@@ -131,7 +134,10 @@
     wrap.innerHTML = '<div class="loading">Loading report card...</div>';
 
     try {
-      const res = await fetch(`${API}/${studentId}/${termId}`);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API}/${studentId}/${termId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
       if (!res.ok) { wrap.innerHTML = '<div class="error">Student or term not found.</div>'; return; }
       const data = await res.json();
       wrap.innerHTML = buildReport(data);
@@ -246,3 +252,4 @@
 </script>
 </body>
 </html>
+
