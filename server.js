@@ -210,7 +210,7 @@ app.post('/api/messages', requireAuth, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════
-//  REPORT CARD ROUTE
+//  PDF REPORT CARD (existing)
 // ══════════════════════════════════════════════════════
 const PDFDocument = require('pdfkit');
 
@@ -309,6 +309,137 @@ app.get('/api/report-card', requireAuth, async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════
+//  FULL REPORT CARD ROUTES (terms, attendance, conduct)
+// ══════════════════════════════════════════════════════
+
+// GET all terms
+app.get('/api/terms', requireAuth, async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM terms ORDER BY year DESC, id DESC');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch terms' });
+  }
+});
+
+// POST create term (teacher only)
+app.post('/api/terms', requireTeacher, async (req, res) => {
+  const { name, year, start_date, end_date } = req.body;
+  if (!name || !year || !start_date || !end_date)
+    return res.status(400).json({ error: 'All fields required' });
+  try {
+    await db.query(
+      'INSERT INTO terms (name, year, start_date, end_date) VALUES (?, ?, ?, ?)',
+      [name, year, start_date, end_date]
+    );
+    res.status(201).json({ message: 'Term created' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create term' });
+  }
+});
+
+// GET full report card for a student for a term
+app.get('/api/report-cards/:studentId/:termId', requireTeacher, async (req, res) => {
+  const { studentId, termId } = req.params;
+  try {
+    const [students] = await db.query(
+      `SELECT s.id, u.name AS first_name, '' AS last_name, s.grade_level AS grade,
+              s.student_number AS admission_number, s.student_number AS class_name
+       FROM students s JOIN users u ON s.user_id = u.id
+       WHERE s.id = ?`, [studentId]
+    );
+    if (!students.length) return res.status(404).json({ message: 'Student not found' });
+
+    const [terms] = await db.query('SELECT * FROM terms WHERE id = ?', [termId]);
+    if (!terms.length) return res.status(404).json({ message: 'Term not found' });
+
+    const [marks] = await db.query(
+      `SELECT sub.name AS subject, sub.name AS code, m.mark, m.total AS max_mark,
+              ROUND((m.mark / m.total) * 100, 1) AS percentage, NULL AS teacher_comment
+       FROM marks m
+       JOIN subjects sub ON m.subject_id = sub.id
+       WHERE m.student_id = ? AND m.term = ?
+       ORDER BY sub.name`,
+      [studentId, terms[0].name]
+    );
+
+    const average = marks.length
+      ? (marks.reduce((sum, m) => sum + parseFloat(m.percentage), 0) / marks.length).toFixed(1)
+      : 0;
+
+    const [attendance] = await db.query(
+      'SELECT * FROM attendance WHERE student_id = ? AND term_id = ?',
+      [studentId, termId]
+    );
+
+    const [conduct] = await db.query(
+      'SELECT * FROM conduct WHERE student_id = ? AND term_id = ?',
+      [studentId, termId]
+    );
+
+    res.json({
+      student: students[0],
+      term: terms[0],
+      marks,
+      average: parseFloat(average),
+      symbol: getSymbol(average),
+      attendance: attendance[0] || null,
+      conduct: conduct[0] || null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST save attendance
+app.post('/api/attendance', requireTeacher, async (req, res) => {
+  const { student_id, term_id, days_present, days_absent, days_late } = req.body;
+  try {
+    await db.query(
+      `INSERT INTO attendance (student_id, term_id, days_present, days_absent, days_late)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE days_present = VALUES(days_present),
+                               days_absent = VALUES(days_absent),
+                               days_late = VALUES(days_late)`,
+      [student_id, term_id, days_present, days_absent, days_late]
+    );
+    res.json({ message: 'Attendance saved' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save attendance' });
+  }
+});
+
+// POST save conduct
+app.post('/api/conduct', requireTeacher, async (req, res) => {
+  const { student_id, term_id, rating, class_teacher_comment, principal_comment } = req.body;
+  try {
+    await db.query(
+      `INSERT INTO conduct (student_id, term_id, rating, class_teacher_comment, principal_comment)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE rating = VALUES(rating),
+                               class_teacher_comment = VALUES(class_teacher_comment),
+                               principal_comment = VALUES(principal_comment)`,
+      [student_id, term_id, rating, class_teacher_comment, principal_comment]
+    );
+    res.json({ message: 'Conduct saved' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save conduct' });
+  }
+});
+
+// Helper: SA achievement levels
+function getSymbol(avg) {
+  if (avg >= 80) return { level: 7, label: 'Outstanding Achievement' };
+  if (avg >= 70) return { level: 6, label: 'Meritorious Achievement' };
+  if (avg >= 60) return { level: 5, label: 'Substantial Achievement' };
+  if (avg >= 50) return { level: 4, label: 'Adequate Achievement' };
+  if (avg >= 40) return { level: 3, label: 'Moderate Achievement' };
+  if (avg >= 30) return { level: 2, label: 'Elementary Achievement' };
+  return { level: 1, label: 'Not Achieved' };
+}
+
 // ── PAGE ROUTES ───────────────────────────────────────
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -324,6 +455,9 @@ app.get('/chat', (req, res) => {
 });
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+app.get('/report-card-view', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'report_card.html'));
 });
 
 // ── START SERVER ──────────────────────────────────────
