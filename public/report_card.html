@@ -104,7 +104,7 @@
 
   async function loadTerms() {
     try {
-      const res = await fetch(`${API}/terms/all`);
+      const res = await fetch("/api/terms");
       const terms = await res.json();
       const sel = document.getElementById('termId');
       terms.forEach(t => {
