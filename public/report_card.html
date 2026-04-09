@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Report Card</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+  .controls { background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .controls select, .controls input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+  .controls button { padding: 8px 18px; background: #185FA5; color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .controls button.print-btn { background: #3B6D11; }
+  .controls button:hover { opacity: 0.9; }
+
+  .report-wrap { max-width: 820px; margin: 2rem auto; background: #fff; border: 1px solid #ccc; padding: 2rem; }
+
+  /* Header */
+  .school-header { text-align: center; border-bottom: 3px solid #185FA5; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+  .school-name { font-size: 22px; font-weight: 700; color: #185FA5; }
+  .report-title { font-size: 16px; font-weight: 600; margin: 4px 0; }
+  .term-year { font-size: 14px; color: #666; }
+
+  /* Student info */
+  .student-info { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 2rem; margin-bottom: 1.5rem; padding: 1rem; background: #f8f8f8; border-radius: 6px; }
+  .info-row { display: flex; gap: 8px; font-size: 14px; }
+  .info-label { color: #666; min-width: 110px; }
+  .info-value { font-weight: 600; }
+
+  /* Marks table */
+  .section-title { font-size: 15px; font-weight: 700; color: #185FA5; border-bottom: 2px solid #185FA5; padding-bottom: 4px; margin: 1.5rem 0 0.75rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #185FA5; color: #fff; padding: 8px 10px; text-align: left; }
+  td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+  .mark-cell { font-weight: 600; text-align: center; }
+  .pass { color: #3B6D11; }
+  .fail { color: #A32D2D; }
+
+  /* Level badge */
+  .level-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .level-7 { background: #EAF3DE; color: #3B6D11; }
+  .level-6 { background: #E1F5EE; color: #0F6E56; }
+  .level-5 { background: #E6F1FB; color: #185FA5; }
+  .level-4 { background: #FAEEDA; color: #633806; }
+  .level-3 { background: #FAEEDA; color: #854F0B; }
+  .level-2, .level-1 { background: #FCEBEB; color: #A32D2D; }
+
+  /* Summary bar */
+  .summary-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 1rem 0; }
+  .summary-card { background: #f8f8f8; border-radius: 6px; padding: 0.75rem 1rem; text-align: center; }
+  .summary-num { font-size: 24px; font-weight: 700; }
+  .summary-label { font-size: 12px; color: #666; margin-top: 2px; }
+
+  /* Attendance */
+  .attend-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0.75rem 0; }
+  .attend-card { background: #f8f8f8; border-radius: 6px; padding: 0.75rem; text-align: center; }
+  .attend-num { font-size: 22px; font-weight: 700; }
+  .attend-label { font-size: 12px; color: #666; }
+  .attend-present .attend-num { color: #3B6D11; }
+  .attend-absent .attend-num { color: #A32D2D; }
+  .attend-late .attend-num { color: #854F0B; }
+
+  /* Conduct */
+  .conduct-row { display: flex; align-items: center; gap: 12px; margin: 0.75rem 0; }
+  .conduct-rating { font-size: 15px; font-weight: 700; }
+  .comment-box { background: #f8f8f8; border-left: 3px solid #185FA5; padding: 0.75rem 1rem; border-radius: 0 6px 6px 0; font-size: 14px; color: #444; margin: 0.5rem 0; font-style: italic; }
+
+  /* Signatures */
+  .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #ddd; }
+  .sig-line { border-top: 1px solid #333; margin-top: 2rem; padding-top: 4px; font-size: 12px; color: #666; text-align: center; }
+
+  /* Loading / error */
+  .loading { text-align: center; padding: 3rem; color: #666; font-size: 15px; }
+  .error { text-align: center; padding: 2rem; color: #A32D2D; font-size: 15px; }
+
+  @media print {
+    .controls { display: none; }
+    body { background: #fff; }
+    .report-wrap { border: none; margin: 0; padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <label style="font-size:14px;font-weight:600;">Student ID:</label>
+  <input type="number" id="studentId" placeholder="e.g. 1" style="width:100px;" />
+  <label style="font-size:14px;font-weight:600;">Term:</label>
+  <select id="termId">
+    <option value="">Select term...</option>
+  </select>
+  <button onclick="loadReport()">Load Report</button>
+  <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<div class="report-wrap" id="reportWrap">
+  <div class="loading">Enter a student ID and select a term to load the report card.</div>
+</div>
+
+<script>
+  const API = '/api/report-cards';
+
+  async function loadTerms() {
+    try {
+      const res = await fetch(`${API}/terms/all`);
+      const terms = await res.json();
+      const sel = document.getElementById('termId');
+      terms.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = `${t.name} ${t.year}`;
+        sel.appendChild(opt);
+      });
+    } catch (e) {
+      console.error('Could not load terms', e);
+    }
+  }
+
+  async function loadReport() {
+    const studentId = document.getElementById('studentId').value;
+    const termId = document.getElementById('termId').value;
+    const wrap = document.getElementById('reportWrap');
+
+    if (!studentId || !termId) {
+      wrap.innerHTML = '<div class="error">Please enter a student ID and select a term.</div>';
+      return;
+    }
+
+    wrap.innerHTML = '<div class="loading">Loading report card...</div>';
+
+    try {
+      const res = await fetch(`${API}/${studentId}/${termId}`);
+      if (!res.ok) { wrap.innerHTML = '<div class="error">Student or term not found.</div>'; return; }
+      const data = await res.json();
+      wrap.innerHTML = buildReport(data);
+    } catch (e) {
+      wrap.innerHTML = '<div class="error">Could not connect to server. Make sure your API is running.</div>';
+    }
+  }
+
+  function getLevel(pct) {
+    if (pct >= 80) return { level: 7, label: 'Outstanding' };
+    if (pct >= 70) return { level: 6, label: 'Meritorious' };
+    if (pct >= 60) return { level: 5, label: 'Substantial' };
+    if (pct >= 50) return { level: 4, label: 'Adequate' };
+    if (pct >= 40) return { level: 3, label: 'Moderate' };
+    if (pct >= 30) return { level: 2, label: 'Elementary' };
+    return { level: 1, label: 'Not Achieved' };
+  }
+
+  function buildReport(d) {
+    const s = d.student;
+    const t = d.term;
+    const att = d.attendance;
+    const con = d.conduct;
+    const sym = d.symbol;
+    const totalDays = att ? att.days_present + att.days_absent : 0;
+    const attPct = totalDays ? Math.round((att.days_present / totalDays) * 100) : 0;
+
+    const marksRows = d.marks.map(m => {
+      const pct = parseFloat(m.percentage);
+      const lv = getLevel(pct);
+      const cls = pct >= 40 ? 'pass' : 'fail';
+      return `<tr>
+        <td>${m.subject}</td>
+        <td class="mark-cell">${Math.round(m.mark)} / ${Math.round(m.max_mark)}</td>
+        <td class="mark-cell ${cls}">${pct}%</td>
+        <td><span class="level-badge level-${lv.level}">${lv.level} - ${lv.label}</span></td>
+        <td style="font-size:13px;color:#555;">${m.teacher_comment || '—'}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <div class="school-header">
+        <div class="school-name">School Name</div>
+        <div class="report-title">Academic Report Card</div>
+        <div class="term-year">${t.name} ${t.year} &nbsp;|&nbsp; ${t.start_date} to ${t.end_date}</div>
+      </div>
+
+      <div class="student-info">
+        <div class="info-row"><span class="info-label">Student Name:</span><span class="info-value">${s.first_name} ${s.last_name}</span></div>
+        <div class="info-row"><span class="info-label">Admission No:</span><span class="info-value">${s.admission_number || '—'}</span></div>
+        <div class="info-row"><span class="info-label">Grade:</span><span class="info-value">${s.grade}</span></div>
+        <div class="info-row"><span class="info-label">Class:</span><span class="info-value">${s.class_name || '—'}</span></div>
+      </div>
+
+      <div class="summary-bar">
+        <div class="summary-card">
+          <div class="summary-num ${d.average >= 40 ? 'pass' : 'fail'}">${d.average}%</div>
+          <div class="summary-label">Overall Average</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num">${sym.level}</div>
+          <div class="summary-label">Achievement Level</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num">${sym.label}</div>
+          <div class="summary-label">Symbol</div>
+        </div>
+      </div>
+
+      <div class="section-title">Academic Performance</div>
+      <table>
+        <thead><tr><th>Subject</th><th style="text-align:center;">Mark</th><th style="text-align:center;">%</th><th>Level</th><th>Teacher Comment</th></tr></thead>
+        <tbody>${marksRows}</tbody>
+      </table>
+
+      <div class="section-title">Attendance</div>
+      <div class="attend-grid">
+        <div class="attend-card attend-present">
+          <div class="attend-num">${att ? att.days_present : '—'}</div>
+          <div class="attend-label">Days Present</div>
+        </div>
+        <div class="attend-card attend-absent">
+          <div class="attend-num">${att ? att.days_absent : '—'}</div>
+          <div class="attend-label">Days Absent</div>
+        </div>
+        <div class="attend-card attend-late">
+          <div class="attend-num">${att ? att.days_late : '—'}</div>
+          <div class="attend-label">Days Late</div>
+        </div>
+      </div>
+      ${att ? `<p style="font-size:13px;color:#666;margin-top:6px;">Attendance rate: <strong>${attPct}%</strong> (${att.days_present} of ${totalDays} days)</p>` : ''}
+
+      <div class="section-title">Conduct &amp; Behaviour</div>
+      ${con ? `
+        <div class="conduct-row">
+          <span style="font-size:14px;color:#666;">Rating:</span>
+          <span class="conduct-rating">${con.rating}</span>
+        </div>
+        ${con.class_teacher_comment ? `<div class="comment-box"><strong>Class Teacher:</strong> ${con.class_teacher_comment}</div>` : ''}
+        ${con.principal_comment ? `<div class="comment-box"><strong>Principal:</strong> ${con.principal_comment}</div>` : ''}
+      ` : '<p style="color:#666;font-size:14px;">No conduct record for this term.</p>'}
+
+      <div class="signatures">
+        <div><div class="sig-line">Class Teacher</div></div>
+        <div><div class="sig-line">Principal</div></div>
+        <div><div class="sig-line">Parent / Guardian</div></div>
+      </div>
+    `;
+  }
+
+  loadTerms();
+</script>
+</body>
+</html>
