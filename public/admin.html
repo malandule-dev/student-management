@@ -98,8 +98,8 @@
     <div class="sidebar-item" onclick="switchPanel('students', this)"><i class="fa fa-users"></i> Students</div>
     <div class="sidebar-item" onclick="switchPanel('chat', this)"><i class="fa fa-comments"></i> Messages</div>
     <div class="sidebar-divider"></div>
-    <a href="/attendance" class="sidebar-item"><i class="fa fa-calendar-check-o"></i> Attendance</a>
-    <a href="/report-card-view" class="sidebar-item"><i class="fa fa-file-text"></i> Report Cards</a>
+    <div class="sidebar-item" onclick="window.location.href='/attendance'"><i class="fa fa-calendar-check-o"></i> Attendance</div>
+    <div class="sidebar-item" onclick="window.location.href='/report-card-view'"><i class="fa fa-file-text"></i> Report Cards</div>
   </div>
   <div class="main">
 
@@ -113,7 +113,7 @@
         <div class="stat-card"><div class="val" id="stat-subjects">—</div><div class="lbl">Subjects</div></div>
       </div>
       <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;">Quick access to key features:</p>
-      <a href="/attendance" class="quick-link-card">
+      <div class="quick-link-card" onclick="window.location.href='/attendance'" style="cursor:pointer;">
         <div class="quick-link-left">
           <div class="quick-link-icon"><i class="fa fa-calendar-check-o"></i></div>
           <div>
@@ -123,7 +123,7 @@
         </div>
         <i class="fa fa-arrow-right quick-link-arrow"></i>
       </a>
-      <a href="/report-card-view" class="quick-link-card">
+      <div class="quick-link-card" onclick="window.location.href='/report-card-view'" style="cursor:pointer;">
         <div class="quick-link-left">
           <div class="quick-link-icon"><i class="fa fa-file-text"></i></div>
           <div>
@@ -132,7 +132,7 @@
           </div>
         </div>
         <i class="fa fa-arrow-right quick-link-arrow"></i>
-      </a>
+      </div>
     </div>
 
     <!-- ADD MARKS -->
