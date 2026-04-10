@@ -104,7 +104,7 @@
 
   async function loadTerms() {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sms_token');
       const res = await fetch('/api/terms', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -134,7 +134,7 @@
     wrap.innerHTML = '<div class="loading">Loading report card...</div>';
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('sms_token');
       const res = await fetch(`${API}/${studentId}/${termId}`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -252,4 +252,3 @@
 </script>
 </body>
 </html>
-
