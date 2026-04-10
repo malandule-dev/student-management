@@ -440,6 +440,162 @@ function getSymbol(avg) {
   return { level: 1, label: 'Not Achieved' };
 }
 
+// ============================================
+// ATTENDANCE ROUTES
+// Paste these into your server.js before the PAGE ROUTES section
+// ============================================
+
+// GET all classes for the logged-in teacher
+app.get('/api/classes', requireTeacher, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT * FROM classes WHERE teacher_id = ? ORDER BY name',
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch classes' });
+  }
+});
+
+// GET all students in a class
+app.get('/api/classes/:classId/students', requireTeacher, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT s.id, u.name, s.student_number, s.grade_level
+       FROM class_students cs
+       JOIN students s ON cs.student_id = s.id
+       JOIN users u ON s.user_id = u.id
+       WHERE cs.class_id = ?
+       ORDER BY u.name`,
+      [req.params.classId]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+// GET attendance for a class on a specific date
+app.get('/api/daily-attendance/:classId/:date', requireTeacher, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT da.student_id, da.status, da.note, u.name
+       FROM daily_attendance da
+       JOIN students s ON da.student_id = s.id
+       JOIN users u ON s.user_id = u.id
+       WHERE da.class_id = ? AND da.date = ?`,
+      [req.params.classId, req.params.date]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch attendance' });
+  }
+});
+
+// POST save attendance for a whole class for a date
+app.post('/api/daily-attendance', requireTeacher, async (req, res) => {
+  const { class_id, date, records } = req.body;
+  if (!class_id || !date || !records || !records.length)
+    return res.status(400).json({ error: 'Missing required fields' });
+  try {
+    for (const r of records) {
+      await db.query(
+        `INSERT INTO daily_attendance (student_id, class_id, date, status, marked_by, note)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE status = VALUES(status), note = VALUES(note), marked_by = VALUES(marked_by)`,
+        [r.student_id, class_id, date, r.status, req.user.id, r.note || null]
+      );
+    }
+    // Auto-update term attendance totals
+    for (const r of records) {
+      const [termRows] = await db.query(
+        `SELECT t.id FROM terms t
+         WHERE ? BETWEEN t.start_date AND t.end_date LIMIT 1`,
+        [date]
+      );
+      if (termRows.length) {
+        const termId = termRows[0].id;
+        const [present] = await db.query(
+          `SELECT COUNT(*) AS cnt FROM daily_attendance
+           WHERE student_id = ? AND class_id = ? AND status = 'present'
+           AND date BETWEEN (SELECT start_date FROM terms WHERE id = ?)
+                        AND (SELECT end_date FROM terms WHERE id = ?)`,
+          [r.student_id, class_id, termId, termId]
+        );
+        const [absent] = await db.query(
+          `SELECT COUNT(*) AS cnt FROM daily_attendance
+           WHERE student_id = ? AND class_id = ? AND status = 'absent'
+           AND date BETWEEN (SELECT start_date FROM terms WHERE id = ?)
+                        AND (SELECT end_date FROM terms WHERE id = ?)`,
+          [r.student_id, class_id, termId, termId]
+        );
+        const [late] = await db.query(
+          `SELECT COUNT(*) AS cnt FROM daily_attendance
+           WHERE student_id = ? AND class_id = ? AND status = 'late'
+           AND date BETWEEN (SELECT start_date FROM terms WHERE id = ?)
+                        AND (SELECT end_date FROM terms WHERE id = ?)`,
+          [r.student_id, class_id, termId, termId]
+        );
+        await db.query(
+          `INSERT INTO attendance (student_id, term_id, days_present, days_absent, days_late)
+           VALUES (?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE days_present = VALUES(days_present),
+                                   days_absent = VALUES(days_absent),
+                                   days_late = VALUES(days_late)`,
+          [r.student_id, termId, present[0].cnt, absent[0].cnt, late[0].cnt]
+        );
+      }
+    }
+    res.json({ message: 'Attendance saved successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save attendance' });
+  }
+});
+
+// GET attendance summary for a class for a term
+app.get('/api/attendance-summary/:classId/:termId', requireTeacher, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT u.name, s.id AS student_id, s.student_number,
+              SUM(da.status = 'present') AS days_present,
+              SUM(da.status = 'absent')  AS days_absent,
+              SUM(da.status = 'late')    AS days_late,
+              COUNT(da.id)               AS total_days
+       FROM class_students cs
+       JOIN students s ON cs.student_id = s.id
+       JOIN users u ON s.user_id = u.id
+       LEFT JOIN daily_attendance da ON da.student_id = s.id
+         AND da.class_id = cs.class_id
+         AND da.date BETWEEN (SELECT start_date FROM terms WHERE id = ?)
+                         AND (SELECT end_date FROM terms WHERE id = ?)
+       WHERE cs.class_id = ?
+       GROUP BY s.id, u.name, s.student_number
+       ORDER BY u.name`,
+      [req.params.termId, req.params.termId, req.params.classId]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch summary' });
+  }
+});
+
+// GET add student to class
+app.post('/api/classes/:classId/students', requireTeacher, async (req, res) => {
+  const { student_id } = req.body;
+  try {
+    await db.query(
+      'INSERT IGNORE INTO class_students (class_id, student_id) VALUES (?, ?)',
+      [req.params.classId, student_id]
+    );
+    res.json({ message: 'Student added to class' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add student' });
+  }
+});
+
+
 // ── PAGE ROUTES ───────────────────────────────────────
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -459,7 +615,9 @@ app.get('/admin', (req, res) => {
 app.get('/report-card-view', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'report_card.html'));
 });
-
+app.get('/attendance', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'attendance.html'));
+});
 // ── START SERVER ──────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`🚀 Student Management System running at http://localhost:${PORT}`);
