@@ -23,6 +23,8 @@
     .sidebar-item:hover{color:var(--text);background:rgba(0,229,255,.05);}
     .sidebar-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(0,229,255,.07);}
     .sidebar-item i{width:18px;text-align:center;}
+    .sidebar-nav-link{display:flex;align-items:center;gap:.8rem;padding:.75rem 1.5rem;cursor:pointer;color:var(--muted);font-size:.88rem;font-weight:500;transition:all .2s;border-left:3px solid transparent;}
+    .sidebar-nav-link:hover{color:var(--accent);background:rgba(0,229,255,.05);border-left-color:var(--accent);}
     .sidebar-divider{border-top:1px solid var(--border);margin:.5rem 0;}
     .main{flex:1;padding:2rem;}
     .panel{display:none;}
@@ -98,8 +100,8 @@
     <div class="sidebar-item" onclick="switchPanel('students', this)"><i class="fa fa-users"></i> Students</div>
     <div class="sidebar-item" onclick="switchPanel('chat', this)"><i class="fa fa-comments"></i> Messages</div>
     <div class="sidebar-divider"></div>
-    <div class="sidebar-item" onclick="goTo('/attendance')"><i class="fa fa-calendar-check-o"></i> Attendance</div>
-    <div class="sidebar-item" onclick="goTo('/report-card-view')"><i class="fa fa-file-text"></i> Report Cards</div>
+    <div class="sidebar-nav-link" onclick="goTo('/attendance')"><i class="fa fa-calendar-check-o"></i> Attendance</div>
+    <div class="sidebar-nav-link" onclick="goTo('/report-card-view')"><i class="fa fa-file-text"></i> Report Cards</div>
   </div>
   <div class="main">
 
