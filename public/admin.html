@@ -98,8 +98,8 @@
     <div class="sidebar-item" onclick="switchPanel('students', this)"><i class="fa fa-users"></i> Students</div>
     <div class="sidebar-item" onclick="switchPanel('chat', this)"><i class="fa fa-comments"></i> Messages</div>
     <div class="sidebar-divider"></div>
-    <div class="sidebar-item" onclick="window.location.href='/attendance'"><i class="fa fa-calendar-check-o"></i> Attendance</div>
-    <div class="sidebar-item" onclick="window.location.href='/report-card-view'"><i class="fa fa-file-text"></i> Report Cards</div>
+    <div class="sidebar-item" onclick="goTo('/attendance')"><i class="fa fa-calendar-check-o"></i> Attendance</div>
+    <div class="sidebar-item" onclick="goTo('/report-card-view')"><i class="fa fa-file-text"></i> Report Cards</div>
   </div>
   <div class="main">
 
@@ -113,7 +113,7 @@
         <div class="stat-card"><div class="val" id="stat-subjects">—</div><div class="lbl">Subjects</div></div>
       </div>
       <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;">Quick access to key features:</p>
-      <div class="quick-link-card" onclick="window.location.href='/attendance'" style="cursor:pointer;">
+      <div class="quick-link-card" onclick="goTo('/attendance')" style="cursor:pointer;">
         <div class="quick-link-left">
           <div class="quick-link-icon"><i class="fa fa-calendar-check-o"></i></div>
           <div>
@@ -123,7 +123,7 @@
         </div>
         <i class="fa fa-arrow-right quick-link-arrow"></i>
       </div>
-      <div class="quick-link-card" onclick="window.location.href='/report-card-view'" style="cursor:pointer;">
+      <div class="quick-link-card" onclick="goTo('/report-card-view')" style="cursor:pointer;">
         <div class="quick-link-left">
           <div class="quick-link-icon"><i class="fa fa-file-text"></i></div>
           <div>
@@ -411,6 +411,7 @@
     setTimeout(() => { el.style.display = 'none'; }, 3500);
   }
 
+  function goTo(url) { window.location.href = url; }
   loadDashboard();
 </script>
 </body>
