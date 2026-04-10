@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+  :root{--bg:#060910;--bg2:#0c1120;--accent:#00e5ff;--accent2:#7b61ff;--text:#e8eaf0;--muted:#7a8499;--card:#0f1826;--border:rgba(0,229,255,0.12);--danger:#ff6b6b;--success:#00e5aa;--warning:orange;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  h1,h2,h3{font-family:'Syne',sans-serif;}
+  nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;position:sticky;top:0;z-index:10;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;color:var(--accent);font-size:1rem;}
+  .logo span{color:var(--text);}
+  .back-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.4rem 1rem;border-radius:6px;cursor:pointer;font-size:.83rem;text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;}
+  .back-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .container{max-width:1100px;margin:0 auto;padding:2rem;}
+  .page-title{font-size:1.5rem;font-weight:800;margin-bottom:1.5rem;display:flex;align-items:center;gap:.75rem;}
+  .page-title i{color:var(--accent);}
+
+  /* Controls */
+  .controls{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;}
+  .ctrl-group{display:flex;flex-direction:column;gap:.4rem;}
+  .ctrl-label{font-size:.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+  select,input[type="date"]{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.55rem 1rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;cursor:pointer;}
+  select:focus,input:focus{border-color:var(--accent);}
+  .btn{padding:.6rem 1.4rem;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .2s;}
+  .btn-primary{background:var(--accent);color:#060910;}
+  .btn-primary:hover{background:#33eaff;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-success{background:var(--success);color:#060910;}
+  .btn-success:hover{opacity:.9;}
+
+  /* Tabs */
+  .tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:0;}
+  .tab{padding:.65rem 1.25rem;cursor:pointer;color:var(--muted);font-size:.88rem;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* Stats */
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1.5rem;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.1rem;text-align:center;}
+  .stat-val{font-size:1.8rem;font-weight:800;font-family:'Syne',sans-serif;}
+  .stat-lbl{font-size:.75rem;color:var(--muted);margin-top:.25rem;}
+  .stat-present .stat-val{color:var(--success);}
+  .stat-absent .stat-val{color:var(--danger);}
+  .stat-late .stat-val{color:var(--warning);}
+  .stat-total .stat-val{color:var(--accent);}
+
+  /* Mark attendance table */
+  .tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:var(--bg2);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:.85rem 1.2rem;text-align:left;}
+  td{padding:.75rem 1.2rem;border-top:1px solid var(--border);font-size:.87rem;vertical-align:middle;}
+  tr:hover td{background:rgba(0,229,255,.03);}
+  .status-btns{display:flex;gap:.4rem;}
+  .status-btn{padding:.3rem .85rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+  .status-btn.present.active{background:rgba(0,229,170,.15);border-color:var(--success);color:var(--success);}
+  .status-btn.absent.active{background:rgba(255,107,107,.15);border-color:var(--danger);color:var(--danger);}
+  .status-btn.late.active{background:rgba(255,165,0,.15);border-color:orange;color:orange;}
+  .note-input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.3rem .7rem;border-radius:6px;font-size:.8rem;width:180px;outline:none;}
+  .note-input:focus{border-color:var(--accent);}
+
+  /* Summary table */
+  .pct-bar{background:var(--bg2);border-radius:100px;height:6px;width:100px;}
+  .pct-fill{height:6px;border-radius:100px;}
+  .badge{display:inline-block;font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:100px;}
+  .badge-good{background:rgba(0,229,170,.15);color:var(--success);}
+  .badge-warn{background:rgba(255,165,0,.15);color:orange;}
+  .badge-bad{background:rgba(255,107,107,.15);color:var(--danger);}
+
+  .empty{text-align:center;padding:3rem;color:var(--muted);}
+  .toast{position:fixed;bottom:2rem;right:2rem;background:var(--success);color:#060910;padding:.75rem 1.5rem;border-radius:10px;font-weight:700;font-size:.9rem;display:none;z-index:999;}
+  .toast.error{background:var(--danger);color:#fff;}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">SMS<span> — Attendance</span></span>
+  <a href="/admin" class="back-btn"><i class="fa fa-arrow-left"></i> Back to Admin</a>
+</nav>
+
+<div class="container">
+  <div class="page-title"><i class="fa fa-calendar-check-o"></i> Attendance Dashboard</div>
+
+  <div class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Class</span>
+      <select id="classSelect" onchange="onClassChange()">
+        <option value="">Select class...</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Date</span>
+      <input type="date" id="dateInput" value="" />
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Term (for summary)</span>
+      <select id="termSelect">
+        <option value="">Select term...</option>
+      </select>
+    </div>
+    <div class="ctrl-group" style="justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="loadMarkView()"><i class="fa fa-users"></i> Load Class</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('mark', this)">Mark Attendance</div>
+    <div class="tab" onclick="switchTab('summary', this)">Term Summary</div>
+  </div>
+
+  <!-- MARK ATTENDANCE TAB -->
+  <div id="tab-mark">
+    <div class="stats-row" id="daily-stats" style="display:none;">
+      <div class="stat-card stat-total"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total Students</div></div>
+      <div class="stat-card stat-present"><div class="stat-val" id="s-present">0</div><div class="stat-lbl">Present</div></div>
+      <div class="stat-card stat-absent"><div class="stat-val" id="s-absent">0</div><div class="stat-lbl">Absent</div></div>
+      <div class="stat-card stat-late"><div class="stat-val" id="s-late">0</div><div class="stat-lbl">Late</div></div>
+    </div>
+
+    <div class="tbl-wrap" id="mark-table-wrap" style="display:none;">
+      <table>
+        <thead><tr><th>#</th><th>Student Name</th><th>Student No.</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody id="mark-tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="mark-empty" class="empty"><i class="fa fa-calendar" style="font-size:2rem;margin-bottom:.5rem;display:block;"></i>Select a class and date, then click "Load Class"</div>
+
+    <div id="save-bar" style="display:none;margin-top:1rem;">
+      <button class="btn btn-success" onclick="saveAttendance()"><i class="fa fa-save"></i> Save Attendance</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY TAB -->
+  <div id="tab-summary" style="display:none;">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Student</th><th>Student No.</th><th>Present</th><th>Absent</th><th>Late</th><th>Attendance %</th><th>Status</th></tr></thead>
+        <tbody id="summary-tbody"><tr><td colspan="7" class="empty">Select a class and term, then view the Summary tab.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const token = localStorage.getItem('sms_token');
+  const user  = JSON.parse(localStorage.getItem('sms_user') || '{}');
+
+  if (!token || user.role !== 'teacher') window.location.href = '/';
+
+  function authH() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+  }
+
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+  }
+
+  // Set today's date as default
+  document.getElementById('dateInput').value = new Date().toISOString().split('T')[0];
+
+  async function loadSelects() {
+    const [classes, terms] = await Promise.all([
+      fetch('/api/classes', { headers: authH() }).then(r => r.json()),
+      fetch('/api/terms', { headers: authH() }).then(r => r.json())
+    ]);
+    const cs = document.getElementById('classSelect');
+    classes.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name;
+      cs.appendChild(o);
+    });
+    const ts = document.getElementById('termSelect');
+    terms.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.id; o.textContent = `${t.name} ${t.year}`;
+      ts.appendChild(o);
+    });
+  }
+
+  function onClassChange() {}
+
+  let students = [];
+  let attendanceMap = {};
+
+  async function loadMarkView() {
+    const classId = document.getElementById('classSelect').value;
+    const date    = document.getElementById('dateInput').value;
+    if (!classId || !date) { showToast('Select a class and date', true); return; }
+
+    const [studs, existing] = await Promise.all([
+      fetch(`/api/classes/${classId}/students`, { headers: authH() }).then(r => r.json()),
+      fetch(`/api/daily-attendance/${classId}/${date}`, { headers: authH() }).then(r => r.json())
+    ]);
+
+    students = studs;
+    attendanceMap = {};
+    existing.forEach(e => { attendanceMap[e.student_id] = { status: e.status, note: e.note || '' }; });
+
+    if (!students.length) {
+      document.getElementById('mark-empty').style.display = 'block';
+      document.getElementById('mark-table-wrap').style.display = 'none';
+      document.getElementById('daily-stats').style.display = 'none';
+      document.getElementById('save-bar').style.display = 'none';
+      showToast('No students in this class', true);
+      return;
+    }
+
+    document.getElementById('mark-empty').style.display = 'none';
+    document.getElementById('mark-table-wrap').style.display = 'block';
+    document.getElementById('daily-stats').style.display = 'grid';
+    document.getElementById('save-bar').style.display = 'block';
+
+    renderMarkTable();
+    updateStats();
+  }
+
+  function renderMarkTable() {
+    const tbody = document.getElementById('mark-tbody');
+    tbody.innerHTML = students.map((s, i) => {
+      const att = attendanceMap[s.id] || { status: 'present', note: '' };
+      return `<tr>
+        <td style="color:var(--muted);">${i + 1}</td>
+        <td style="font-weight:600;">${s.name}</td>
+        <td style="color:var(--muted);font-family:monospace;">${s.student_number}</td>
+        <td>
+          <div class="status-btns">
+            <button class="status-btn present ${att.status === 'present' ? 'active' : ''}"
+              onclick="setStatus(${s.id}, 'present', this)">Present</button>
+            <button class="status-btn absent ${att.status === 'absent' ? 'active' : ''}"
+              onclick="setStatus(${s.id}, 'absent', this)">Absent</button>
+            <button class="status-btn late ${att.status === 'late' ? 'active' : ''}"
+              onclick="setStatus(${s.id}, 'late', this)">Late</button>
+          </div>
+        </td>
+        <td>
+          <input class="note-input" type="text" placeholder="Optional note..."
+            value="${att.note || ''}"
+            oninput="setNote(${s.id}, this.value)" />
+        </td>
+      </tr>`;
+    }).join('');
+    // Set default present for new records
+    students.forEach(s => {
+      if (!attendanceMap[s.id]) attendanceMap[s.id] = { status: 'present', note: '' };
+    });
+  }
+
+  function setStatus(studentId, status, btn) {
+    attendanceMap[studentId] = { ...attendanceMap[studentId], status };
+    const row = btn.closest('tr');
+    row.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateStats();
+  }
+
+  function setNote(studentId, note) {
+    attendanceMap[studentId] = { ...attendanceMap[studentId], note };
+  }
+
+  function updateStats() {
+    const vals = Object.values(attendanceMap);
+    document.getElementById('s-total').textContent   = students.length;
+    document.getElementById('s-present').textContent = vals.filter(v => v.status === 'present').length;
+    document.getElementById('s-absent').textContent  = vals.filter(v => v.status === 'absent').length;
+    document.getElementById('s-late').textContent    = vals.filter(v => v.status === 'late').length;
+  }
+
+  async function saveAttendance() {
+    const classId = document.getElementById('classSelect').value;
+    const date    = document.getElementById('dateInput').value;
+    const records = students.map(s => ({
+      student_id: s.id,
+      status: attendanceMap[s.id]?.status || 'present',
+      note: attendanceMap[s.id]?.note || ''
+    }));
+    try {
+      const res = await fetch('/api/daily-attendance', {
+        method: 'POST',
+        headers: authH(),
+        body: JSON.stringify({ class_id: classId, date, records })
+      });
+      const data = await res.json();
+      if (res.ok) showToast('Attendance saved successfully!');
+      else showToast(data.error || 'Failed to save', true);
+    } catch {
+      showToast('Server error', true);
+    }
+  }
+
+  async function loadSummary() {
+    const classId = document.getElementById('classSelect').value;
+    const termId  = document.getElementById('termSelect').value;
+    if (!classId || !termId) { showToast('Select a class and term', true); return; }
+    const rows = await fetch(`/api/attendance-summary/${classId}/${termId}`, { headers: authH() }).then(r => r.json());
+    const tbody = document.getElementById('summary-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">No data found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const total = parseInt(r.total_days) || 0;
+      const pct   = total ? Math.round((r.days_present / total) * 100) : 0;
+      const color = pct >= 80 ? 'var(--success)' : pct >= 60 ? 'orange' : 'var(--danger)';
+      const badge = pct >= 80
+        ? '<span class="badge badge-good">Good</span>'
+        : pct >= 60
+        ? '<span class="badge badge-warn">At Risk</span>'
+        : '<span class="badge badge-bad">Poor</span>';
+      return `<tr>
+        <td style="font-weight:600;">${r.name}</td>
+        <td style="color:var(--muted);font-family:monospace;">${r.student_number}</td>
+        <td style="color:var(--success);font-weight:600;">${r.days_present}</td>
+        <td style="color:var(--danger);font-weight:600;">${r.days_absent}</td>
+        <td style="color:orange;font-weight:600;">${r.days_late}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:.6rem;">
+            <div class="pct-bar"><div class="pct-fill" style="width:${pct}%;background:${color};"></div></div>
+            <span style="font-size:.82rem;font-weight:600;color:${color};">${pct}%</span>
+          </div>
+        </td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-mark').style.display    = name === 'mark'    ? 'block' : 'none';
+    document.getElementById('tab-summary').style.display = name === 'summary' ? 'block' : 'none';
+    if (name === 'summary') loadSummary();
+  }
+
+  loadSelects();
+</script>
+</body>
+</html>
